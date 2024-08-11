@@ -112,8 +112,14 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
         if any(tag in title for tag in tags):
             if result[index]['id'] not in user_config.get_pages(str(chat_id)):
                 print("bingo", tags, title)
+                tag_mess = " ".join([f"#{tag}" for tag in tags if tag in title])
                 user_config.add_page(str(chat_id), result[index]['id'])
                 url = f"https://linux.do/t/topic/{result[index]['id']}"
+                message = (
+                    f"{tag_mess}\n\n"
+                    f"{title}\n\n"
+                    f"{url}"
+                )
                 await context.bot.send_message(chat_id=chat_id, text=f"{title}\n{url}")
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
