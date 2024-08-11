@@ -3,8 +3,8 @@
 
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
-
+from telegram import BotCommand, Update
+from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, InlineQueryHandler, ContextTypes
 # 启用日志
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -115,17 +115,17 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                 user_config.add_page(str(chat_id), result[index]['id'])
                 url = f"https://linux.do/t/topic/{result[index]['id']}"
                 await context.bot.send_message(chat_id=chat_id, text=f"{title}\n{url}")
+tips_message = (
+    "欢迎使用 Linux.do 风向标 bot！\n\n"
+    "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
+    "使用 /unset 来取消任务。\n\n"
+    "使用 /set_tags 免费 公益 来设置含有指定关键词的话题。\n\n"
+    "有 bug 请联系 @yym68686\n\n"
+)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """发送使用说明"""
-    message = (
-        "欢迎使用 Linux.do 风向标 bot！\n\n"
-        "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
-        "使用 /unset 来取消任务。\n\n"
-        "使用 /set_tags 免费 公益 来设置含有指定关键词的话题。\n\n"
-        "有 bug 请联系 @yym68686\n\n"
-    )
-    await update.message.reply_text(message)
+    await update.message.reply_text(tips_message)
 
 async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a job to the queue."""
@@ -178,12 +178,37 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = "成功取消定时任务！" if job_removed else "您没有活动的定时任务。"
     await update.message.reply_text(text)
 
+async def post_init(application: Application) -> None:
+    await application.bot.set_my_commands([
+        BotCommand('set', '设置定时时长'),
+        BotCommand('set_tags', '设置关键词'),
+        BotCommand('unset', '取消监控linux.do'),
+        BotCommand('start', '使用简介'),
+    ])
+    await application.bot.set_my_description(tips_message)
+
 def main() -> None:
     """运行bot"""
     # 创建Application并传入您的bot token
     import os
     BOT_TOKEN = os.environ.get('BOT_TOKEN', None)
-    application = Application.builder().token(BOT_TOKEN).build()
+    time_out = 600
+    application = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .concurrent_updates(True)
+        .connection_pool_size(65536)
+        .get_updates_connection_pool_size(65536)
+        .read_timeout(time_out)
+        .pool_timeout(time_out)
+        .get_updates_read_timeout(time_out)
+        .get_updates_write_timeout(time_out)
+        .get_updates_pool_timeout(time_out)
+        .get_updates_connect_timeout(time_out)
+        .rate_limiter(AIORateLimiter(max_retries=5))
+        .post_init(post_init)
+        .build()
+    )
 
     # 添加命令处理器
     application.add_handler(CommandHandler("start", start))
