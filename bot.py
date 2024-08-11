@@ -145,12 +145,13 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
 
         job_removed = remove_job_if_exists(str(chat_id), context)
-        context.job_queue.run_repeating(scheduled_function,
-                                        interval=10,
-                                        first=1,
-                                        chat_id=chat_id,
-                                        name=str(chat_id))
-        # context.job_queue.run_once(alarm, due, chat_id=chat_id, name=str(chat_id), data=due)
+        context.job_queue.run_repeating(
+            scheduled_function,
+            interval=10,
+            first=1,
+            chat_id=chat_id,
+            name=str(chat_id)
+        )
 
         text = "Timer successfully set!"
         if job_removed:
@@ -187,10 +188,10 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
-        BotCommand('set', '设置嗅探间隔'),
-        BotCommand('set_tags', '设置监控关键词'),
-        BotCommand('unset', '取消监控linux.do'),
-        BotCommand('start', '使用简介'),
+        BotCommand('set', '设置嗅探间隔(秒)'),
+        BotCommand('set_tags', '设置监控关键词（空格隔开）'),
+        BotCommand('unset', '取消监控 linux.do'),
+        BotCommand('start', 'linux.do 风向标使用简介'),
     ])
     await application.bot.set_my_description(tips_message)
 
