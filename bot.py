@@ -188,8 +188,8 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
-        BotCommand('set', '设置嗅探间隔(秒)'),
         BotCommand('set_tags', '设置监控关键词（空格隔开）'),
+        BotCommand('set', '设置嗅探间隔(秒)'),
         BotCommand('unset', '取消监控 linux.do'),
         BotCommand('start', 'linux.do 风向标使用简介'),
     ])

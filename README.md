@@ -1,5 +1,21 @@
 # doLinuxRadar
 
+<!-- [![Build Status](https://travis-ci.com/yym68686/doLinuxRadar.svg?branch=main)](https://travis-ci.com/yym68686/doLinuxRadar) -->
+[![Docker Pulls](https://img.shields.io/docker/pulls/yym68686/dolinuxradar)](https://hub.docker.com/r/yym68686/dolinuxradar)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/yym68686/dolinuxradar)](https://hub.docker.com/r/yym68686/dolinuxradar)
+[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/yym68686/dolinuxradar)](https://hub.docker.com/r/yym68686/dolinuxradar)
+
+doLinuxRadar 专门嗅探 linux.do 你感兴趣的话题。机器人使用地址：[@doLinuxRadar](https://t.me/doLinuxRadar)
+
+## 使用指南
+
+命令列表：
+
+- `/set_tags`: 设置监控关键词（空格隔开）, 例如: `/set_tags 免费 linux`
+- `/set`: 设置嗅探间隔(秒), 例如: `/set 60`
+- `/unset`: 取消监控 linux.do, 例如: `/unset`
+- `/start`: linux.do 风向标使用简介, 例如: `/start`
+
 ## Docker Local Deployment
 
 Start the container
