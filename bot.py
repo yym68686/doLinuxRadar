@@ -10,6 +10,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
 class NestedDict:
     def __init__(self):
         self.data = {}
@@ -106,16 +108,24 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = context.job.chat_id
     tags = user_config.get_tags(str(chat_id))
     for index, title in enumerate(titles):
-        print("title", title, "tags", tags, any(tag in title for tag in tags))
+        # print(tags, any(tag in title for tag in tags), title)
         if any(tag in title for tag in tags):
             if result[index]['id'] not in user_config.get_pages(str(chat_id)):
+                print(tags, title)
                 user_config.add_page(str(chat_id), result[index]['id'])
                 url = f"https://linux.do/t/topic/{result[index]['id']}"
                 await context.bot.send_message(chat_id=chat_id, text=f"{title}\n{url}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """发送使用说明"""
-    await update.message.reply_text("欢迎！ 使用 /set10sec 来设置每10秒执行一次的任务，使用 /unset 来取消任务")
+    message = (
+        "欢迎使用 Linux.do 风向标 bot！\n\n"
+        "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
+        "使用 /unset 来取消任务。\n\n"
+        "使用 /set_tags 免费 公益 来设置含有指定关键词的话题。\n\n"
+        "有 bug 请联系 @yym68686\n\n"
+    )
+    await update.message.reply_text(message)
 
 async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a job to the queue."""
