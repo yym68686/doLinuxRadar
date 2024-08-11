@@ -157,6 +157,7 @@ async def set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """设置标签"""
     chat_id = update.effective_message.chat_id
     tags = context.args
+    tags = [tag.lower() for tag in tags]
     user_config.add_tag(str(chat_id), tags)
     print("UserConfig", user_config.to_json())
     await update.effective_message.reply_text("Tags successfully set!")
