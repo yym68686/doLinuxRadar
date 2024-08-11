@@ -120,7 +120,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                     f"{title}\n\n"
                     f"{url}"
                 )
-                await context.bot.send_message(chat_id=chat_id, text=f"{title}\n{url}")
+                await context.bot.send_message(chat_id=chat_id, text=message)
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
     "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
