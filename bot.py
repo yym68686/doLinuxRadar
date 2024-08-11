@@ -108,10 +108,10 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = context.job.chat_id
     tags = user_config.get_tags(str(chat_id))
     for index, title in enumerate(titles):
-        # print(tags, any(tag in title for tag in tags), title)
+        print(tags, any(tag in title for tag in tags), title)
         if any(tag in title for tag in tags):
             if result[index]['id'] not in user_config.get_pages(str(chat_id)):
-                print(tags, title)
+                print("bingo", tags, title)
                 user_config.add_page(str(chat_id), result[index]['id'])
                 url = f"https://linux.do/t/topic/{result[index]['id']}"
                 await context.bot.send_message(chat_id=chat_id, text=f"{title}\n{url}")
