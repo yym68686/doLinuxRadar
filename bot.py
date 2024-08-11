@@ -180,8 +180,8 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
-        BotCommand('set', '设置定时时长'),
-        BotCommand('set_tags', '设置关键词'),
+        BotCommand('set', '设置嗅探间隔'),
+        BotCommand('set_tags', '设置监控关键词'),
         BotCommand('unset', '取消监控linux.do'),
         BotCommand('start', '使用简介'),
     ])
