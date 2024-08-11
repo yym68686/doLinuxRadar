@@ -33,6 +33,7 @@ class UserConfig:
         if 'tags' not in self.config[user_id].data:
             self.config[user_id]['tags'] = []
         if isinstance(tag, list):
+            self.config[user_id]['tags'] = []
             for t in tag:
                 self.config[user_id]['tags'].append(t)
         else:
