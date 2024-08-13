@@ -5,6 +5,12 @@
 [![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/yym68686/dolinuxradar)](https://hub.docker.com/r/yym68686/dolinuxradar)
 [![Docker Image Version (latest by date)](https://img.shields.io/docker/v/yym68686/dolinuxradar)](https://hub.docker.com/r/yym68686/dolinuxradar)
 
+<p align="center">
+  <a href="https://t.me/+CKIMSpHhO2E5ZTc1">
+    <img src="https://img.shields.io/badge/加入 Telegram 群-blue?&logo=telegram">
+  </a>
+</p>
+
 doLinuxRadar 专门嗅探 linux.do 你感兴趣的话题。机器人使用地址：[@doLinuxRadar](https://t.me/doLinuxRadar)
 
 ## 使用指南
