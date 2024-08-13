@@ -12,6 +12,47 @@ logging.basicConfig(
 
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
+import json
+import os
+import fcntl
+from contextlib import contextmanager
+
+CONFIG_DIR = os.environ.get('CONFIG_DIR', 'user_configs')
+
+@contextmanager
+def file_lock(filename):
+    with open(filename, 'a+') as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            yield f
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+def save_user_config(user_id, config):
+    if not os.path.exists(CONFIG_DIR):
+        os.makedirs(CONFIG_DIR)
+
+    filename = os.path.join(CONFIG_DIR, f'{user_id}.json')
+
+    with file_lock(filename):
+        with open(filename, 'w') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+
+def load_user_config(user_id):
+    filename = os.path.join(CONFIG_DIR, f'{user_id}.json')
+
+    if not os.path.exists(filename):
+        return {}
+
+    with file_lock(filename):
+        with open(filename, 'r') as f:
+            return json.load(f)
+
+def update_user_config(user_id, key, value):
+    config = load_user_config(user_id)
+    config[key] = value
+    save_user_config(user_id, config)
+
 class NestedDict:
     def __init__(self):
         self.data = {}
@@ -30,6 +71,19 @@ class NestedDict:
 class UserConfig:
     def __init__(self):
         self.config = NestedDict()
+        self.load_all_configs()
+
+    def load_all_configs(self):
+        if not os.path.exists(CONFIG_DIR):
+            return
+
+        for filename in os.listdir(CONFIG_DIR):
+            if filename.endswith('.json'):
+                user_id = filename[:-5]  # 移除 '.json' 后缀
+                user_config = load_user_config(user_id)
+                self.config[user_id] = NestedDict()
+                for key, value in user_config.items():
+                    self.config[user_id][key] = value
 
     def add_tag(self, user_id, tag):
         if 'tags' not in self.config[user_id].data:
@@ -38,6 +92,7 @@ class UserConfig:
             self.config[user_id]['tags'] = []
             for t in tag:
                 self.config[user_id]['tags'].append(t)
+            update_user_config(user_id, 'tags', self.config[user_id]['tags'])
         else:
             if tag not in self.config[user_id]['tags']:
                 self.config[user_id]['tags'].append(tag)
@@ -47,6 +102,7 @@ class UserConfig:
             self.config[user_id]['pages'] = []
         if page not in self.config[user_id]['pages']:
             self.config[user_id]['pages'].append(page)
+        update_user_config(user_id, 'pages', self.config[user_id]['pages'])
 
     def get_tags(self, user_id):
         return self.config[user_id]['tags'] if 'tags' in self.config[user_id].data else []
@@ -103,30 +159,30 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     result = get_and_parse_json(url)["topic_list"]["topics"]
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     titles = [i["title"].lower() for i in result]
-    # print("context.job.chat_id", context.job.chat_id)
-    # print("UserConfig[str(context.job.chat_id)]", UserConfig[str(context.job.chat_id)])
-    chat_id = context.job.chat_id
-    tags = user_config.get_tags(str(chat_id))
-    for index, title in enumerate(titles):
-        print(tags, any(tag in title for tag in tags), title)
-        if any(tag in title for tag in tags):
-            if result[index]['id'] not in user_config.get_pages(str(chat_id)):
-                print("bingo", tags, title)
-                tag_mess = " ".join([f"#{tag}" for tag in tags if tag in title])
-                user_config.add_page(str(chat_id), result[index]['id'])
-                url = f"https://linux.do/t/topic/{result[index]['id']}"
-                message = (
-                    f"{tag_mess}\n"
-                    f"{title}\n"
-                    f"{url}"
-                )
-                await context.bot.send_message(chat_id=chat_id, text=message)
+    for chat_id in user_config.config.data.keys():
+        chat_id = int(chat_id)
+        print("chat_id", chat_id)
+        tags = user_config.get_tags(str(chat_id))
+        for index, title in enumerate(titles):
+            print(tags, any(tag in title for tag in tags), title)
+            if any(tag in title for tag in tags):
+                if result[index]['id'] not in user_config.get_pages(str(chat_id)):
+                    print("bingo", tags, title)
+                    tag_mess = " ".join([f"#{tag}" for tag in tags if tag in title])
+                    user_config.add_page(str(chat_id), result[index]['id'])
+                    url = f"https://linux.do/t/topic/{result[index]['id']}"
+                    message = (
+                        f"{tag_mess}\n"
+                        f"{title}\n"
+                        f"{url}"
+                    )
+                    await context.bot.send_message(chat_id=chat_id, text=message)
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
+    "使用 /tags 免费 公益 来设置含有指定关键词的话题。\n\n"
     "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
     "使用 /unset 来取消任务。\n\n"
-    "使用 /set_tags 免费 公益 来设置含有指定关键词的话题。\n\n"
     "有 bug 请联系 @yym68686\n\n"
 )
 
@@ -161,7 +217,7 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except (IndexError, ValueError):
         await update.effective_message.reply_text("Usage: /set <seconds>")
 
-async def set_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """设置标签"""
     chat_id = update.effective_message.chat_id
     tags = context.args
@@ -188,7 +244,7 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
-        BotCommand('set_tags', '设置监控关键词（空格隔开）'),
+        BotCommand('tags', '设置监控关键词（空格隔开）'),
         BotCommand('set', '设置嗅探间隔(秒)'),
         BotCommand('unset', '取消监控 linux.do'),
         BotCommand('start', 'linux.do 风向标使用简介'),
@@ -222,7 +278,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
-    application.add_handler(CommandHandler("set_tags", set_tags))
+    application.add_handler(CommandHandler("tags", tags))
     # 运行bot直到用户按下Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
