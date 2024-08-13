@@ -13,7 +13,7 @@ doLinuxRadar 专门嗅探 linux.do 你感兴趣的话题。机器人使用地址
 
 - `/tags`: 设置监控关键词（空格隔开）, 例如: `/tags 免费 linux`
 - `/set`: 设置嗅探间隔(秒), 例如: `/set 60`
-- `/unset`: 取消监控 linux.do, 例如: `/unset`
+- `/unset`: 取消或者打开消息推送, 例如: `/unset`
 - `/start`: linux.do 风向标使用简介, 例如: `/start`
 
 ## Docker Local Deployment
@@ -23,6 +23,7 @@ Start the container
 ```bash
 docker run -p 8010:8080 --name dolinuxradar -dit \
     -e BOT_TOKEN=your_telegram_bot_token \
+    -e ADMIN_LIST=your_telegram_id \
     -v ./user_configs:/app/user_configs \
     yym68686/dolinuxradar:latest
 ```
@@ -43,6 +44,7 @@ docker pull yym68686/dolinuxradar:latest
 docker rm -f dolinuxradar
 docker run -p 8010:8080 -dit --name dolinuxradar \
 -e BOT_TOKEN= \
+-e ADMIN_LIST=your_telegram_id \
 -v ./user_configs:/app/user_configs \
 yym68686/dolinuxradar:latest
 docker logs -f dolinuxradar

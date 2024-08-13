@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # pylint: disable=unused-argument
 
+import os
 import logging
 from telegram import BotCommand, Update
 from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, ContextTypes
@@ -11,8 +12,29 @@ logging.basicConfig(
 
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
+
+ADMIN_LIST = os.environ.get('ADMIN_LIST', None)
+if ADMIN_LIST:
+    ADMIN_LIST = [int(id) for id in ADMIN_LIST.split(",")]
+# 判断是否是管理员
+def AdminAuthorization(func):
+    async def wrapper(*args, **kwargs):
+        update, context = args[:2]
+        chatid = update.message.chat_id
+        if ADMIN_LIST == None:
+            return await func(*args, **kwargs)
+        if (update.effective_user.id not in ADMIN_LIST):
+            message = (
+                f"`Hi, {update.effective_user.username}!`\n\n"
+                f"id: `{update.effective_user.id}`\n\n"
+                f"您没有权限访问！需要管理员权限。\n\n"
+            )
+            await context.bot.send_message(chat_id=chatid, text=message, parse_mode='MarkdownV2')
+            return
+        return await func(*args, **kwargs)
+    return wrapper
+
 import json
-import os
 import fcntl
 from contextlib import contextmanager
 
@@ -84,6 +106,13 @@ class UserConfig:
                 for key, value in user_config.items():
                     self.config[user_id][key] = value
 
+    def set_timer(self, user_id):
+        if 'timer' not in self.config[user_id].data:
+            self.config[user_id]['timer'] = True
+        self.config[user_id]['timer'] = not self.config[user_id]['timer']
+        update_user_config(user_id, 'timer', self.config[user_id]['timer'])
+        return self.config[user_id]['timer']
+
     def add_tag(self, user_id, tag):
         if 'tags' not in self.config[user_id].data:
             self.config[user_id]['tags'] = []
@@ -108,6 +137,9 @@ class UserConfig:
 
     def get_pages(self, user_id):
         return self.config[user_id]['pages'] if 'pages' in self.config[user_id].data else []
+
+    def get_timer(self, user_id):
+        return self.config[user_id]['timer'] if 'timer' in self.config[user_id].data else True
 
     def to_json(self):
         def nested_dict_to_dict(nd):
@@ -148,7 +180,11 @@ def get_and_parse_json(url):
 async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     """这个函数将每10秒执行一次"""
     url = "https://linux.do/latest.json"
-    result = get_and_parse_json(url)["topic_list"]["topics"]
+    result = None
+    try:
+        result = get_and_parse_json(url)["topic_list"]["topics"]
+    except Exception as e:
+        logging.error(f"获取数据失败：{e}")
     if result is None:
         logging.error("获取数据失败")
         return
@@ -156,10 +192,12 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     titles = [i["title"].lower() for i in result]
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
-        print("chat_id", chat_id)
+        print("chat_id", chat_id, user_config.get_timer(str(chat_id)))
+        if user_config.get_timer(str(chat_id)) == False:
+            continue
         tags = user_config.get_tags(str(chat_id))
         for index, title in enumerate(titles):
-            print(tags, any(tag in title for tag in tags), title)
+            # print(tags, any(tag in title for tag in tags), title)
             if any(tag in title for tag in tags):
                 if result[index]['id'] not in user_config.get_pages(str(chat_id)):
                     print("bingo", tags, title)
@@ -177,7 +215,7 @@ tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
     "使用 /tags 免费 公益 来设置含有指定关键词的话题。\n\n"
     "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
-    "使用 /unset 来取消任务。\n\n"
+    "使用 /unset 来取消或者打开消息推送。\n\n"
     "有 bug 请联系 @yym68686\n\n"
 )
 
@@ -185,6 +223,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """发送使用说明"""
     await update.message.reply_text(tips_message)
 
+@AdminAuthorization
 async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a job to the queue."""
     chat_id = update.effective_message.chat_id
@@ -233,15 +272,17 @@ def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
 async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """取消定时任务"""
     chat_id = update.message.chat_id
-    job_removed = remove_job_if_exists(str(chat_id), context)
-    text = "成功取消定时任务！" if job_removed else "您没有活动的定时任务。"
+    # job_removed = remove_job_if_exists(str(chat_id), context)
+    # text = "成功取消定时任务！" if job_removed else "您没有活动的定时任务。"
+    timer_status = user_config.set_timer(str(chat_id))
+    text = "已关闭消息推送 📢！" if timer_status == False else "已开启消息推送 📢！"
     await update.message.reply_text(text)
 
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
         BotCommand('tags', '设置监控关键词（空格隔开）'),
         BotCommand('set', '设置嗅探间隔(秒)'),
-        BotCommand('unset', '取消监控 linux.do'),
+        BotCommand('unset', '关闭或打开消息推送'),
         BotCommand('start', 'linux.do 风向标使用简介'),
     ])
     await application.bot.set_my_description(tips_message)
