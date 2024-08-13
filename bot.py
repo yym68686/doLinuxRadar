@@ -2,10 +2,9 @@
 # pylint: disable=unused-argument
 
 import logging
-from telegram import Update
 from telegram import BotCommand, Update
-from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, InlineQueryHandler, ContextTypes
-# 启用日志
+from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, ContextTypes
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -128,17 +127,10 @@ import json
 def get_and_parse_json(url):
     import httpx
     try:
-        # 发送 GET 请求
         with httpx.Client() as client:
             response = client.get(url)
-
-        # 检查请求是否成功
         response.raise_for_status()
-
-        # 解析 JSON 内容
         data = response.json()
-
-        # 返回解析后的 JSON 数据
         return data
 
     except httpx.HTTPStatusError as e:
@@ -157,6 +149,9 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     """这个函数将每10秒执行一次"""
     url = "https://linux.do/latest.json"
     result = get_and_parse_json(url)["topic_list"]["topics"]
+    if result is None:
+        logging.error("获取数据失败")
+        return
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     titles = [i["title"].lower() for i in result]
     for chat_id in user_config.config.data.keys():
@@ -253,7 +248,6 @@ async def post_init(application: Application) -> None:
 
 def main() -> None:
     """运行bot"""
-    # 创建Application并传入您的bot token
     import os
     BOT_TOKEN = os.environ.get('BOT_TOKEN', None)
     time_out = 600
@@ -274,12 +268,11 @@ def main() -> None:
         .build()
     )
 
-    # 添加命令处理器
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(CommandHandler("tags", tags))
-    # 运行bot直到用户按下Ctrl-C
+
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
