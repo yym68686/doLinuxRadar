@@ -18,6 +18,7 @@ doLinuxRadar 专门嗅探 linux.do 你感兴趣的话题。机器人使用地址
 命令列表：
 
 - `/tags`: 设置监控关键词（空格隔开）, 例如: `/tags 免费 linux`
+  - 关键词支持正则匹配，例如我想匹配openai，但是不想匹配openair，可以使用`/tags (?<![A-Za-z])openai(?![A-Za-z])`
 - `/set`: 设置嗅探间隔(秒), 例如: `/set 60`
 - `/unset`: 取消或者打开消息推送, 例如: `/unset`
 - `/start`: linux.do 风向标使用简介, 例如: `/start`

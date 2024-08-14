@@ -2,6 +2,7 @@
 # pylint: disable=unused-argument
 
 import os
+import re
 import logging
 from telegram import BotCommand, Update
 from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, ContextTypes
@@ -197,23 +198,27 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
             continue
         tags = user_config.get_tags(str(chat_id))
         for index, title in enumerate(titles):
+            # print(title)
             # print(tags, any(tag in title for tag in tags), title)
-            if any(tag in title for tag in tags):
-                if result[index]['id'] not in user_config.get_pages(str(chat_id)):
-                    print("bingo", tags, title)
-                    tag_mess = " ".join([f"#{tag}" for tag in tags if tag in title])
-                    user_config.add_page(str(chat_id), result[index]['id'])
-                    url = f"https://linux.do/t/topic/{result[index]['id']}"
-                    message = (
-                        f"{tag_mess}\n"
-                        f"{title}\n"
-                        f"{url}"
-                    )
-                    await context.bot.send_message(chat_id=chat_id, text=message)
+            for tag in tags:
+                findall_result = re.findall(tag, title)
+                if findall_result:
+                    if result[index]['id'] not in user_config.get_pages(str(chat_id)):
+                        print("bingo", tags, title)
+                        tag_mess = " ".join([f"#{tag}" for tag in findall_result])
+                        user_config.add_page(str(chat_id), result[index]['id'])
+                        url = f"https://linux.do/t/topic/{result[index]['id']}"
+                        message = (
+                            f"{tag_mess}\n"
+                            f"{title}\n"
+                            f"{url}"
+                        )
+                        await context.bot.send_message(chat_id=chat_id, text=message)
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
     "使用 /tags 免费 公益 来设置含有指定关键词的话题。\n\n"
+    "关键词支持正则匹配，例如我想匹配openai，但是不想匹配openair，可以使用/tags (?<![A-Za-z])openai(?![A-Za-z])\n\n"
     "使用 /set 10 来设置每10秒执行一次的任务。\n\n"
     "使用 /unset 来取消或者打开消息推送。\n\n"
     "有 bug 请联系 @yym68686\n\n"
