@@ -177,6 +177,19 @@ def get_and_parse_json(url):
 
     return None
 
+from telegram.error import Forbidden, TelegramError
+async def is_bot_blocked(bot, user_id: int) -> bool:
+    try:
+        # 尝试向用户发送一条测试消息
+        await bot.send_chat_action(chat_id=user_id, action="typing")
+        return False  # 如果成功发送，说明机器人未被封禁
+    except Forbidden:
+        print("error:", user_id, "已封禁机器人")
+        return True  # 如果收到Forbidden错误，说明机器人被封禁
+    except TelegramError:
+        # 处理其他可能的错误
+        return False  # 如果是其他错误，我们假设机器人未被封禁
+
 # 这是将被定时执行的函数
 async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     """这个函数将每10秒执行一次"""
@@ -193,7 +206,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     titles = [i["title"].lower() for i in result]
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
-        print("chat_id", chat_id, user_config.get_timer(str(chat_id)))
+        # print("chat_id", chat_id, user_config.get_timer(str(chat_id)))
         if user_config.get_timer(str(chat_id)) == False:
             continue
         tags = user_config.get_tags(str(chat_id))
@@ -213,7 +226,8 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                             f"{title}\n"
                             f"{url}"
                         )
-                        await context.bot.send_message(chat_id=chat_id, text=message)
+                        if not await is_bot_blocked(context.bot, chat_id):
+                            await context.bot.send_message(chat_id=chat_id, text=message)
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
