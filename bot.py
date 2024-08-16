@@ -12,6 +12,7 @@ logging.basicConfig(
 )
 
 logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("apscheduler.executors.default").setLevel(logging.ERROR)
 
 
 ADMIN_LIST = os.environ.get('ADMIN_LIST', None)
