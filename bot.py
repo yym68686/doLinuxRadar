@@ -134,22 +134,20 @@ class UserConfig:
             self.config[user_id]['pages'].append(page)
         update_user_config(user_id, 'pages', self.config[user_id]['pages'])
 
-    def get_tags(self, user_id):
-        return self.config[user_id]['tags'] if 'tags' in self.config[user_id].data else []
+    def get_value(self, user_id, key, default=[]):
+        return self.config[user_id][key] if key in self.config[user_id].data else default
 
-    def get_pages(self, user_id):
-        return self.config[user_id]['pages'] if 'pages' in self.config[user_id].data else []
-
-    def get_timer(self, user_id):
-        return self.config[user_id]['timer'] if 'timer' in self.config[user_id].data else True
-
-    def to_json(self):
+    def to_json(self, user_id=None):
         def nested_dict_to_dict(nd):
             if isinstance(nd, NestedDict):
                 return {k: nested_dict_to_dict(v) for k, v in nd.data.items()}
             return nd
 
-        serializable_config = nested_dict_to_dict(self.config)
+        if user_id:
+            serializable_config = nested_dict_to_dict(self.config[user_id])
+        else:
+            serializable_config = nested_dict_to_dict(self.config)
+
         return json.dumps(serializable_config, ensure_ascii=False, indent=2)
 
     def __str__(self):
@@ -207,20 +205,19 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     titles = [i["title"].lower() for i in result]
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
-        # print("chat_id", chat_id, user_config.get_timer(str(chat_id)))
-        if user_config.get_timer(str(chat_id)) == False:
+        tags = user_config.get_value(str(chat_id), "tags", default=[])
+        pages = user_config.get_value(str(chat_id), "pages", default=[])
+        timer = user_config.get_value(str(chat_id), "timer", default=True)
+        if timer == False:
             continue
-        tags = user_config.get_tags(str(chat_id))
         for index, title in enumerate(titles):
-            # print(title)
             # print(tags, any(tag in title for tag in tags), title)
             for tag in tags:
                 findall_result = re.findall(tag, title)
                 if findall_result:
-                    if result[index]['id'] not in user_config.get_pages(str(chat_id)):
+                    if result[index]['id'] not in pages:
                         print("bingo", tags, title)
                         tag_mess = " ".join([f"#{tag}" for tag in findall_result])
-                        user_config.add_page(str(chat_id), result[index]['id'])
                         url = f"https://linux.do/t/topic/{result[index]['id']}"
                         message = (
                             f"{tag_mess}\n"
@@ -229,6 +226,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                         )
                         if not await is_bot_blocked(context.bot, chat_id):
                             await context.bot.send_message(chat_id=chat_id, text=message)
+                            user_config.add_page(str(chat_id), result[index]['id'])
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
@@ -277,7 +275,7 @@ async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tags = context.args
     tags = [tag.lower() for tag in tags]
     user_config.add_tag(str(chat_id), tags)
-    print("UserConfig", user_config.to_json())
+    print("UserConfig", user_config.to_json(str(chat_id)))
     await update.effective_message.reply_text("Tags successfully set!")
 
 def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
