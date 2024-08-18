@@ -115,24 +115,14 @@ class UserConfig:
         update_user_config(user_id, 'timer', self.config[user_id]['timer'])
         return self.config[user_id]['timer']
 
-    def add_tag(self, user_id, tag):
-        if 'tags' not in self.config[user_id].data:
-            self.config[user_id]['tags'] = []
-        if isinstance(tag, list):
-            self.config[user_id]['tags'] = []
-            for t in tag:
-                self.config[user_id]['tags'].append(t)
-            update_user_config(user_id, 'tags', self.config[user_id]['tags'])
-        else:
-            if tag not in self.config[user_id]['tags']:
-                self.config[user_id]['tags'].append(tag)
-
-    def add_page(self, user_id, page):
-        if 'pages' not in self.config[user_id].data:
-            self.config[user_id]['pages'] = []
-        if page not in self.config[user_id]['pages']:
-            self.config[user_id]['pages'].append(page)
-        update_user_config(user_id, 'pages', self.config[user_id]['pages'])
+    def set_value(self, user_id, key, value: list, append=False):
+        if key not in self.config[user_id].data:
+            self.config[user_id][key] = []
+        if append == False:
+            self.config[user_id][key] = []
+        for t in value:
+            self.config[user_id][key].append(t)
+        update_user_config(user_id, key, self.config[user_id][key])
 
     def get_value(self, user_id, key, default=[]):
         return self.config[user_id][key] if key in self.config[user_id].data else default
@@ -226,7 +216,8 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                         )
                         if not await is_bot_blocked(context.bot, chat_id):
                             await context.bot.send_message(chat_id=chat_id, text=message)
-                            user_config.add_page(str(chat_id), result[index]['id'])
+                            user_config.set_value(str(chat_id), "pages", [result[index]['id']], append=True)
+
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
@@ -274,7 +265,7 @@ async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_message.chat_id
     tags = context.args
     tags = [tag.lower() for tag in tags]
-    user_config.add_tag(str(chat_id), tags)
+    user_config.set_value(str(chat_id), "tags", tags, append=False)
     print("UserConfig", user_config.to_json(str(chat_id)))
     await update.effective_message.reply_text("Tags successfully set!")
 
