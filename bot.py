@@ -69,7 +69,11 @@ def load_user_config(user_id):
 
     with file_lock(filename):
         with open(filename, 'r') as f:
-            return json.load(f)
+            content = f.read()
+            if not content.strip():
+                return {}
+            else:
+                return json.loads(content)
 
 def update_user_config(user_id, key, value):
     config = load_user_config(user_id)
@@ -90,6 +94,9 @@ class NestedDict:
 
     def __str__(self):
         return str(self.data)
+
+    def keys(self):
+        return self.data.keys()
 
 class UserConfig:
     def __init__(self):
@@ -206,7 +213,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
                 findall_result = re.findall(tag, title)
                 if findall_result:
                     if result[index]['id'] not in pages:
-                        print("bingo", tags, title)
+                        print(tags, chat_id, result[index]['id'], title)
                         tag_mess = " ".join([f"#{tag}" for tag in findall_result])
                         url = f"https://linux.do/t/topic/{result[index]['id']}"
                         message = (
