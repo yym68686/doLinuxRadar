@@ -203,6 +203,8 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
         tags = user_config.get_value(str(chat_id), "tags", default=[])
+        if tags == []:
+            continue
         re_rule = "|".join(tags)
         pages = user_config.get_value(str(chat_id), "pages", default=[])
         timer = user_config.get_value(str(chat_id), "timer", default=True)
@@ -271,7 +273,10 @@ async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tags = [tag.lower() for tag in tags]
     user_config.set_value(str(chat_id), "tags", tags, append=False)
     print("UserConfig", user_config.to_json(str(chat_id)))
-    await update.effective_message.reply_text("Tags successfully set!")
+    if tags == []:
+        await update.effective_message.reply_text("📖 关键词已清空！")
+    else:
+        await update.effective_message.reply_text("📖 监控关键词设置成功！")
 
 def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """如果存在，则移除指定名称的任务"""
