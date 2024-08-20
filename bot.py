@@ -203,28 +203,25 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
         tags = user_config.get_value(str(chat_id), "tags", default=[])
+        re_rule = "|".join(tags)
         pages = user_config.get_value(str(chat_id), "pages", default=[])
         timer = user_config.get_value(str(chat_id), "timer", default=True)
         if timer == False:
             continue
         for index, title in enumerate(titles):
-            # print(tags, any(tag in title for tag in tags), title)
-            for tag in tags:
-                findall_result = re.findall(tag, title)
-                if findall_result:
-                    if result[index]['id'] not in pages:
-                        print(tags, chat_id, result[index]['id'], title)
-                        tag_mess = " ".join([f"#{tag}" for tag in findall_result])
-                        url = f"https://linux.do/t/topic/{result[index]['id']}"
-                        message = (
-                            f"{tag_mess}\n"
-                            f"{title}\n"
-                            f"{url}"
-                        )
-                        if not await is_bot_blocked(context.bot, chat_id):
-                            await context.bot.send_message(chat_id=chat_id, text=message)
-                            user_config.set_value(str(chat_id), "pages", [result[index]['id']], append=True)
-
+            findall_result = list(set(re.findall(re_rule, title)))
+            page_id = result[index]['id']
+            url = f"https://linux.do/t/topic/{page_id}"
+            if findall_result and page_id not in pages and not await is_bot_blocked(context.bot, chat_id):
+                print(tags, chat_id, page_id, title)
+                tag_mess = " ".join([f"#{tag}" for tag in findall_result])
+                message = (
+                    f"{tag_mess}\n"
+                    f"{title}\n"
+                    f"{url}"
+                )
+                await context.bot.send_message(chat_id=chat_id, text=message)
+                user_config.set_value(str(chat_id), "pages", [page_id], append=True)
 
 tips_message = (
     "欢迎使用 Linux.do 风向标 bot！\n\n"
