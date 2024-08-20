@@ -270,7 +270,7 @@ async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """设置标签"""
     chat_id = update.effective_message.chat_id
     tags = context.args
-    tags = [tag.lower() for tag in tags]
+    tags = list(set([tag.lower() for tag in tags]))
     user_config.set_value(str(chat_id), "tags", tags, append=False)
     print("UserConfig", user_config.to_json(str(chat_id)))
     if tags == []:
