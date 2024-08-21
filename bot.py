@@ -194,7 +194,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         result = get_and_parse_json(url)["topic_list"]["topics"]
     except Exception as e:
-        logging.error(f"获取数据失败：{e}")
+        logging.error("获取数据失败：%s", repr(e))
     if result is None:
         logging.error("获取数据失败")
         return
