@@ -36,6 +36,12 @@ def AdminAuthorization(func):
         return await func(*args, **kwargs)
     return wrapper
 
+def get_time():
+    from datetime import datetime, timedelta, timezone
+    tz_utc_8 = timezone(timedelta(hours=8))
+    beijing_time = datetime.now(timezone.utc).astimezone(tz_utc_8)
+    return beijing_time.strftime("%Y-%m-%d %H:%M:%S")
+
 import json
 import fcntl
 from contextlib import contextmanager
@@ -215,7 +221,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
             page_id = result[index]['id']
             url = f"https://linux.do/t/topic/{page_id}"
             if findall_result and page_id not in pages and not await is_bot_blocked(context.bot, chat_id):
-                print(tags, chat_id, page_id, title)
+                print(get_time(), tags, chat_id, page_id, title)
                 tag_mess = " ".join([f"#{tag}" for tag in findall_result])
                 message = (
                     f"{tag_mess}\n"
