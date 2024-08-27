@@ -302,6 +302,16 @@ async def unset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = "已关闭消息推送 📢！" if timer_status == False else "已开启消息推送 📢！"
     await update.message.reply_text(text)
 
+async def error(update, context):
+    import traceback
+    traceback_string = traceback.format_exception(None, context.error, context.error.__traceback__)
+    if "telegram.error.TimedOut: Timed out" in traceback_string:
+        print('telegram.error.TimedOut: Timed out')
+        return
+    if "telegram.error.NetworkError: Bad Gateway" in traceback_string:
+        print('telegram.error.NetworkError: Bad Gateway')
+        return
+
 async def post_init(application: Application) -> None:
     await application.bot.set_my_commands([
         BotCommand('tags', '设置监控关键词（空格隔开）'),
@@ -337,6 +347,7 @@ def main() -> None:
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(CommandHandler("tags", tags))
+    application.add_error_handler(error)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
