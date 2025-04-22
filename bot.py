@@ -165,8 +165,8 @@ def get_and_parse_json(url, cf_clearance = None):
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
     }
     cookie_dict = {}
-    if cf_clearance:
-        cookie_dict["cf_clearance"] = cf_clearance
+    if cf_clearance or os.getenv("CF_CLEARANCE", None):
+        cookie_dict["cf_clearance"] = cf_clearance or os.getenv("CF_CLEARANCE", None)
     try:
         with httpx.Client() as client:
             # 直接将字典传递给 cookies 参数
