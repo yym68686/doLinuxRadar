@@ -294,7 +294,7 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         job_removed = remove_job_if_exists(str(chat_id), context)
         context.job_queue.run_repeating(
             scheduled_function,
-            interval=10,
+            interval=due,
             first=1,
             chat_id=chat_id,
             name=str(chat_id)
