@@ -5,7 +5,8 @@ RUN pip install uv && uv sync
 
 FROM python:3.11-slim-bullseye
 EXPOSE 8080
-COPY --from=builder /app/.venv/lib/python3.11/site-packages /app/.venv/lib/python3.11/site-packages
+COPY --from=builder /app/.venv/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /app/.venv/bin/activate /usr/local/bin/activate
 WORKDIR /app
 COPY ./setup.sh /app
 RUN apt-get update && apt-get install -y --no-install-recommends git \

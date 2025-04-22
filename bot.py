@@ -4,6 +4,7 @@
 import os
 import re
 import logging
+import requests
 from telegram import BotCommand, Update
 from telegram.ext import CommandHandler, ApplicationBuilder, Application, AIORateLimiter, ContextTypes
 
@@ -159,32 +160,59 @@ class UserConfig:
 user_config = UserConfig()
 
 import json
-def get_and_parse_json(url, cf_clearance = None):
-    import httpx
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
+def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1"):
+    """
+    发送请求到 FlareSolverr，获取指定 URL 的内容，
+    提取第一个 <pre> 标签内的文本，并将其解析为 JSON。
+
+    Args:
+        target_url (str): 需要 FlareSolverr 抓取的目标 URL。
+        flare_solverr_url (str, optional): FlareSolverr v1 API 的 URL。
+                                          默认为 "http://localhost:8191/v1"。
+
+    Returns:
+        dict or None: 解析后的 JSON 对象，如果未找到 <pre> 标签或发生错误则返回 None。
+    """
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "cmd": "request.get",
+        "url": target_url,
+        "maxTimeout": 60000
     }
-    cookie_dict = {}
-    if cf_clearance or os.getenv("CF_CLEARANCE", None):
-        cookie_dict["cf_clearance"] = cf_clearance or os.getenv("CF_CLEARANCE", None)
     try:
-        with httpx.Client() as client:
-            # 直接将字典传递给 cookies 参数
-            response = client.get(url, headers=headers, cookies=cookie_dict)
-        response.raise_for_status()
-        data = response.json()
-        return data
+        response = requests.post(flare_solverr_url, headers=headers, json=data, timeout=70) # 增加超时
+        response.raise_for_status() # 检查 HTTP 请求错误
+        response_data = response.json()
+        html_content = response_data.get("solution", {}).get("response")
 
-    except httpx.HTTPStatusError as e:
-        print(f"HTTP 错误： {e}")
-    except httpx.RequestError as e:
-        print(f"网络请求错误： {e}")
-    except json.JSONDecodeError:
-        print("JSON 解析错误")
+        if not html_content:
+            print("错误：未能从 FlareSolverr 响应中获取 HTML 内容")
+            return None
+
+        # 使用正则表达式查找 <pre> 标签内的内容
+        match = re.search(r"<pre[^>]*>(.*?)</pre>", html_content, re.DOTALL)
+
+        # 检查是否找到匹配项
+        if match:
+            extracted_text = match.group(1).strip() # 获取并清理提取的文本
+            try:
+                # 尝试解析 JSON
+                result = json.loads(extracted_text)
+                return result # 返回解析后的 JSON 对象
+            except json.JSONDecodeError as e:
+                print(f"错误：解析 JSON 失败 - {e}")
+                print(f"提取到的文本内容：\n{extracted_text}")
+                return None
+        else:
+            print("未在响应中找到 <pre> 标签内的内容")
+            # print(f"原始 HTML 内容：\n{html_content}") # 取消注释以调试
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"错误：请求 FlareSolverr 时发生错误 - {e}")
+        return None
     except Exception as e:
-        print(f"发生未知错误： {e}")
-
-    return None
+        print(f"发生未知错误：{e}")
+        return None
 
 from telegram.error import Forbidden, TelegramError
 async def is_bot_blocked(bot, user_id: int) -> bool:
@@ -205,7 +233,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     url = "https://linux.do/latest.json"
     result = None
     try:
-        result = get_and_parse_json(url, user_config.get_value("global", "cf_clearance", default=None))["topic_list"]["topics"]
+        result = get_and_parse_json(url)["topic_list"]["topics"]
     except Exception as e:
         logging.error("获取数据失败：%s", repr(e))
     if result is None:
@@ -278,16 +306,6 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     except (IndexError, ValueError):
         await update.effective_message.reply_text("Usage: /set <seconds>")
-
-@AdminAuthorization
-async def cookies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """设置 cf_clearance"""
-    cf_clearance = context.args[0]
-    if cf_clearance:
-        user_config.set_value("global", "cf_clearance", cf_clearance, append=False)
-        await update.effective_message.reply_text("cf_clearance 设置成功！")
-    else:
-        await update.effective_message.reply_text("Usage: /cookies <cf_clearance>")
 
 async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """设置标签"""
@@ -364,7 +382,6 @@ def main() -> None:
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(CommandHandler("tags", tags))
-    application.add_handler(CommandHandler("cookies", cookies))
     application.add_error_handler(error)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)

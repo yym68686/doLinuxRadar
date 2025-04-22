@@ -8,4 +8,5 @@ dependencies = [
     "feedparser>=6.0.11",
     "python-dotenv>=1.1.0",
     "python-telegram-bot[job-queue,rate-limiter,webhooks]>=22.0",
+    "requests>=2.32.3",
 ]
