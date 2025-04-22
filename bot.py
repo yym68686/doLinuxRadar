@@ -232,8 +232,9 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     """这个函数将每10秒执行一次"""
     url = "https://linux.do/latest.json"
     result = None
+    flare_solverr_url = os.environ.get("FLARESOLLVERR_URL", "http://localhost:8191/v1")
     try:
-        result = get_and_parse_json(url)["topic_list"]["topics"]
+        result = get_and_parse_json(url, flare_solverr_url)["topic_list"]["topics"]
     except Exception as e:
         logging.error("获取数据失败：%s", repr(e))
     if result is None:
