@@ -38,7 +38,7 @@ docker run -p 8010:8080 --name dolinuxradar -dit \
 Package the Docker image in the repository and upload it to Docker Hub
 
 ```bash
-docker build --no-cache -t dolinuxradar:latest -f Dockerfile.build --platform linux/amd64 .
+docker build --platform linux/amd64 -t dolinuxradar .
 docker tag dolinuxradar:latest yym68686/dolinuxradar:latest
 docker push yym68686/dolinuxradar:latest
 ```

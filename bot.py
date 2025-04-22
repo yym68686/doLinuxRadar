@@ -159,11 +159,18 @@ class UserConfig:
 user_config = UserConfig()
 
 import json
-def get_and_parse_json(url):
+def get_and_parse_json(url, cf_clearance = None):
     import httpx
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
+    }
+    cookie_dict = {}
+    if cf_clearance:
+        cookie_dict["cf_clearance"] = cf_clearance
     try:
         with httpx.Client() as client:
-            response = client.get(url)
+            # 直接将字典传递给 cookies 参数
+            response = client.get(url, headers=headers, cookies=cookie_dict)
         response.raise_for_status()
         data = response.json()
         return data
@@ -198,7 +205,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     url = "https://linux.do/latest.json"
     result = None
     try:
-        result = get_and_parse_json(url)["topic_list"]["topics"]
+        result = get_and_parse_json(url, user_config.get_value("global", "cf_clearance", default=None))["topic_list"]["topics"]
     except Exception as e:
         logging.error("获取数据失败：%s", repr(e))
     if result is None:
@@ -271,6 +278,16 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     except (IndexError, ValueError):
         await update.effective_message.reply_text("Usage: /set <seconds>")
+
+@AdminAuthorization
+async def cookies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """设置 cf_clearance"""
+    cf_clearance = context.args[0]
+    if cf_clearance:
+        user_config.set_value("global", "cf_clearance", cf_clearance, append=False)
+        await update.effective_message.reply_text("cf_clearance 设置成功！")
+    else:
+        await update.effective_message.reply_text("Usage: /cookies <cf_clearance>")
 
 async def tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """设置标签"""
@@ -347,6 +364,7 @@ def main() -> None:
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(CommandHandler("tags", tags))
+    application.add_handler(CommandHandler("cookies", cookies))
     application.add_error_handler(error)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)

@@ -1,3 +1,0 @@
---index-url https://pypi.python.org/simple/
-python-dotenv
-python-telegram-bot[webhooks,rate-limiter,job-queue]==21.0.1
