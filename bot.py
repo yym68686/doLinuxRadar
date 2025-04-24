@@ -237,8 +237,6 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
         result = get_and_parse_json(url, flare_solverr_url)["topic_list"]["topics"]
     except Exception as e:
         logging.error("获取数据失败：%s", repr(e))
-    if result is None:
-        logging.error("获取数据失败")
         return
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     titles = [i["title"].lower() for i in result]
@@ -256,6 +254,8 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
             findall_result = list(set(re.findall(re_rule, title)))
             page_id = result[index]['id']
             url = f"https://linux.do/t/topic/{page_id}"
+            if ADMIN_LIST and chat_id in ADMIN_LIST:
+                print("ADMIN_LIST", findall_result, chat_id, page_id, title)
             if findall_result and page_id not in pages and not await is_bot_blocked(context.bot, chat_id):
                 print(get_time(), tags, chat_id, page_id, title)
                 tag_mess = " ".join([f"#{tag}" for tag in findall_result])
