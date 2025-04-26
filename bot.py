@@ -243,11 +243,13 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
         tags = user_config.get_value(str(chat_id), "tags", default=[])
+        print("tags", tags, chat_id)
         if tags == []:
             continue
         re_rule = "|".join(tags)
         pages = user_config.get_value(str(chat_id), "pages", default=[])
         timer = user_config.get_value(str(chat_id), "timer", default=True)
+        print("timer", timer, chat_id)
         if timer == False:
             continue
         for index, title in enumerate(titles):
