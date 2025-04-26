@@ -117,7 +117,6 @@ class UserConfig:
         for filename in os.listdir(CONFIG_DIR):
             if filename.endswith('.json'):
                 user_id = filename[:-5]  # 移除 '.json' 后缀
-                print("user_id", user_id)
                 user_config = load_user_config(user_id)
                 self.config[user_id] = NestedDict()
                 for key, value in user_config.items():
@@ -244,22 +243,25 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
     for chat_id in user_config.config.data.keys():
         chat_id = int(chat_id)
         tags = user_config.get_value(str(chat_id), "tags", default=[])
-        print("tags", tags, chat_id)
         if tags == []:
             continue
         re_rule = "|".join(tags)
         pages = user_config.get_value(str(chat_id), "pages", default=[])
         timer = user_config.get_value(str(chat_id), "timer", default=True)
-        print("timer", timer, chat_id)
+
+        # 编译正则表达式，捕获可能的错误，并忽略大小写
+        try:
+            compiled_re = re.compile(re_rule, re.IGNORECASE)
+        except re.error as e:
+            logging.error(f"用户 {chat_id} 的正则表达式模式 '{re_rule}' 无效: {e}")
+            continue # 跳过此用户的处理
+
         if timer == False:
             continue
         for index, title in enumerate(titles):
             findall_result = list(set(re.findall(re_rule, title)))
             page_id = result[index]['id']
             url = f"https://linux.do/t/topic/{page_id}"
-            print("ADMIN_LIST", ADMIN_LIST, chat_id, chat_id in ADMIN_LIST, type(chat_id), type(ADMIN_LIST[0]))
-            if ADMIN_LIST and chat_id in ADMIN_LIST:
-                print("ADMIN_LIST", findall_result, chat_id, page_id, title)
             if findall_result and page_id not in pages and not await is_bot_blocked(context.bot, chat_id):
                 print(get_time(), tags, chat_id, page_id, title)
                 tag_mess = " ".join([f"#{tag}" for tag in findall_result])
