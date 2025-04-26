@@ -254,6 +254,7 @@ async def scheduled_function(context: ContextTypes.DEFAULT_TYPE) -> None:
             findall_result = list(set(re.findall(re_rule, title)))
             page_id = result[index]['id']
             url = f"https://linux.do/t/topic/{page_id}"
+            print("ADMIN_LIST", ADMIN_LIST, chat_id, chat_id in ADMIN_LIST, type(chat_id), type(ADMIN_LIST[0]))
             if ADMIN_LIST and chat_id in ADMIN_LIST:
                 print("ADMIN_LIST", findall_result, chat_id, page_id, title)
             if findall_result and page_id not in pages and not await is_bot_blocked(context.bot, chat_id):
