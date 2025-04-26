@@ -117,6 +117,7 @@ class UserConfig:
         for filename in os.listdir(CONFIG_DIR):
             if filename.endswith('.json'):
                 user_id = filename[:-5]  # 移除 '.json' 后缀
+                print("user_id", user_id)
                 user_config = load_user_config(user_id)
                 self.config[user_id] = NestedDict()
                 for key, value in user_config.items():
