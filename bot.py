@@ -159,7 +159,47 @@ class UserConfig:
 
 user_config = UserConfig()
 
-import json
+def get_html_from_thordata(target_url: str) -> str | None:
+    """
+    使用 thordata.com API 获取指定 URL 的 HTML 内容。
+
+    Args:
+        target_url (str): 需要抓取的目标 URL.
+
+    Returns:
+        str or None: 返回获取到的 HTML 内容，如果失败则返回 None.
+    """
+    api_url = "https://universalapi.thordata.com/request"
+    # 优先从环境变量获取 token，如果不存在则使用示例中的 token
+    api_token = os.environ.get("THORDATA_API_TOKEN", None)
+
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "url": target_url,
+        "type": "html",
+        "js_render": "True",
+        "country": "us"
+    }
+
+    try:
+        response = requests.post(api_url, headers=headers, json=data, timeout=70)
+        response.raise_for_status()
+        # 假设 API 直接返回 HTML 文本
+        return response.text
+    except requests.exceptions.HTTPError as http_err:
+        logging.error(f"请求 ThorData API 时发生 HTTP 错误: {http_err}")
+        logging.error(f"响应内容: {response.text}")
+        return None
+    except requests.exceptions.RequestException as e:
+        logging.error(f"请求 ThorData API 时发生错误: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"发生未知错误: {e}")
+        return None
+
 def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1"):
     """
     发送请求到 FlareSolverr，获取指定 URL 的内容，
@@ -180,10 +220,11 @@ def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1")
         "maxTimeout": 60000
     }
     try:
-        response = requests.post(flare_solverr_url, headers=headers, json=data, timeout=70) # 增加超时
-        response.raise_for_status() # 检查 HTTP 请求错误
-        response_data = response.json()
-        html_content = response_data.get("solution", {}).get("response")
+        # response = requests.post(flare_solverr_url, headers=headers, json=data, timeout=70) # 增加超时
+        # response.raise_for_status() # 检查 HTTP 请求错误
+        # response_data = response.json()
+        # html_content = response_data.get("solution", {}).get("response")
+        html_content = get_html_from_thordata(target_url)
 
         if not html_content:
             print("错误：未能从 FlareSolverr 响应中获取 HTML 内容")
