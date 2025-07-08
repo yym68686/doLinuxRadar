@@ -188,7 +188,9 @@ def get_html_from_thordata(target_url: str) -> str | None:
         response = requests.post(api_url, headers=headers, json=data, timeout=70)
         response.raise_for_status()
         # 假设 API 直接返回 HTML 文本
-        return response.text
+        json_result = json.loads(response.text)
+        html_result = json_result.get("data", None)
+        return html_result
     except requests.exceptions.HTTPError as http_err:
         logging.error(f"请求 ThorData API 时发生 HTTP 错误: {http_err}")
         logging.error(f"响应内容: {response.text}")
