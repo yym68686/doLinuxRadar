@@ -187,10 +187,7 @@ def get_html_from_thordata(target_url: str) -> str | None:
     try:
         response = requests.post(api_url, headers=headers, json=data, timeout=70)
         response.raise_for_status()
-        # 假设 API 直接返回 HTML 文本
-        json_result = json.loads(response.text)
-        html_result = json_result.get("data", None)
-        return html_result
+        return response.text
     except requests.exceptions.HTTPError as http_err:
         logging.error(f"请求 ThorData API 时发生 HTTP 错误: {http_err}")
         logging.error(f"响应内容: {response.text}")
@@ -199,7 +196,7 @@ def get_html_from_thordata(target_url: str) -> str | None:
         logging.error(f"请求 ThorData API 时发生错误: {e}")
         return None
     except Exception as e:
-        logging.error(f"发生未知错误: {e}")
+        logging.error(f"发生未知错误: {e}，响应：{response.text}")
         return None
 
 def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1"):
@@ -229,7 +226,7 @@ def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1")
         html_content = get_html_from_thordata(target_url)
 
         if not html_content:
-            print("错误：未能从 FlareSolverr 响应中获取 HTML 内容")
+            print("错误：未能获取 HTML 内容")
             return None
 
         # 使用正则表达式查找 <pre> 标签内的内容
