@@ -230,6 +230,14 @@ def get_and_parse_json(target_url, flare_solverr_url="http://localhost:8191/v1")
             return None
 
         # 使用正则表达式查找 <pre> 标签内的内容
+        # print(html_content)
+        try:
+            result = json.loads(html_content)
+            return result
+        except json.JSONDecodeError as e:
+            print(f"错误：解析 JSON 失败 - {e}")
+            # print(f"提取到的文本内容：\n{html_content}")
+            # return None
         match = re.search(r"<pre[^>]*>(.*?)</pre>", html_content, re.DOTALL)
 
         # 检查是否找到匹配项
